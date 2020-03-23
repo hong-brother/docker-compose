@@ -1,0 +1,65 @@
+--- 
+version: '3'
+services: 
+  gitlab: 
+    container_name: vcs-gitlab
+    image: 'gitlab/gitlab-ce:latest'
+    ports: 
+      - '80:80'
+      - '443:443'
+      - '222:22'
+    privileged: true
+    restart: always
+    environment: 
+      GITLAB_OMNIBUS_CONFIG: |
+          external_url 'https://gitlab.hsnam.co.kr'
+          nginx['enable'] = true
+          nginx['client_max_body_size] = '1048m'
+          # Add any other gitlab.rb configuration here, each on its own line
+    volumes: 
+      - '/home/docker/docker-compose/data/gitlab/config:/etc/gitlab'
+      - '/home/docker/docker-compose/data/gitlab/logs:/var/log/gitlab'
+      - '/home/docker/docker-compose/data/gitlab/data:/var/opt/gitlab'
+      - '/home/docker/docker-compose/data/gitlab/backups:/var/opt/gitlab/backups'
+  jenkins: 
+    container_name: ci-jenkins
+    image: 'jenkins/jenkins:latest'
+    ports: 
+      - '8080:8080'
+      - '50000:50000'
+    privileged: true
+    restart: always
+    volumes: 
+      - '/var/run/docker.sock:/var/run/docker.sock'
+      - '/home/docker/docker-compose/data/jenkins/jenkins_home:/var/jenkins_home'
+      - '/usr/bin/docker:/usr/bin/docker'
+    environment: 
+      TZ: Asia/Seoul
+    depends_on: 
+      - gitlab
+  nexus: 
+    container_name: repository-nexus
+    privileged: true
+    restart: always
+    environment: 
+      TZ: Asia/Seoul
+    image: sonatype/nexus3
+    ports: 
+      - '8081:8081'
+      - '8082:8082'
+    volumes: 
+      - '/home/docker/docker-compose/data/nexus/nexus-data:/nexus-data'
+    depends_on: 
+      - gitlab
+      - jenkins
+  postgis: 
+    container_name: db-postgis
+    image: mdillon/postgis
+    ports: 
+      - '5432:5432'
+    privileged: true
+    restart: always
+    environment: 
+      TZ: Asia/Seoul
+    volumes: 
+      - '/home/docker/docker-compose/data/postgresql:/var/lib/postgresql'
